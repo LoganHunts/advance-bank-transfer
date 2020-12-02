@@ -2,3 +2,14 @@
  * All of the CSS for your public-facing functionality should be
  * included in this file.
  */
+ a.adv_receipt_remove_attachment {
+    border: 1px solid #000000;
+    padding: 1px 8px;
+    text-decoration: none !important;
+    color: #000000;
+    font-weight: 500;
+    background: #efefef;
+}
+.is_hidden {
+    display: none;
+}

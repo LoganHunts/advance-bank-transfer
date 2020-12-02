@@ -96,8 +96,39 @@ class Advance_Bank_Transfer_Admin {
 		 * class.
 		 */
 
-		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/advance-bank-transfer-admin.js', array( 'jquery' ), $this->version, false );
-
+		wp_enqueue_script( $this->plugin_name . 'scripts', plugin_dir_url( __FILE__ ) . 'js/advance-bank-transfer-admin.js', array( 'jquery' ), $this->version, false );
 	}
 
+
+
+	/**
+	 * Register the Advance Bank Transfer gateway.
+	 *
+	 * @since    1.0.0
+	 */
+	public function include_gateway_class() {
+
+		/**
+		 * The class responsible for defining all actions that occur in the gateway configuration and functioning.
+		 */
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/gateway/class-advance-bank-transfer-gateway.php';
+	}
+
+
+	/**
+	 * Register the Advance Bank Transfer gateway.
+	 *
+	 * @since    1.0.0
+	 */
+	public function register_payment_gateway(  $available_gateways  ) {
+
+		if ( class_exists( 'WC_Gateway_Advance_BACS' ) ) {
+
+			$available_gateways[] = 'WC_Gateway_Advance_BACS';
+		}
+		
+		return $available_gateways;
+	}
+
+// End of class.
 }

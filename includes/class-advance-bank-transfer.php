@@ -157,6 +157,11 @@ class Advance_Bank_Transfer {
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
 
+		// Include payment gateway class after plugins are loaded.
+		$this->loader->add_action( 'plugins_loaded', $plugin_admin, 'include_gateway_class' );
+
+		// Add payment gateway support to Woocommerce.
+		$this->loader->add_filter( 'woocommerce_payment_gateways', $plugin_admin, 'register_payment_gateway' );
 	}
 
 	/**
