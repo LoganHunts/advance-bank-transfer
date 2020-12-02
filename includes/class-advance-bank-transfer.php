@@ -178,6 +178,9 @@ class Advance_Bank_Transfer {
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_styles' );
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_scripts' );
 
+		// Wp Ajax callbacks.
+		$this->loader->add_action( 'wp_ajax_perform_upload', $plugin_public, 'perform_upload' );
+		$this->loader->add_action( 'wp_ajax_nopriv_perform_upload', $plugin_public, 'perform_upload' );
 	}
 
 	/**

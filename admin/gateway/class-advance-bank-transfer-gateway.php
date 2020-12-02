@@ -75,7 +75,7 @@ class WC_Gateway_Advance_BACS extends WC_Payment_Gateway {
 		add_action( 'woocommerce_thankyou_bacs', array( $this, 'thankyou_page' ) );
 
 		add_filter( 'woocommerce_gateway_description', array( $this, 'add_receipt_fields_html' ), 10, 2 );
-
+		
 		// Customer Emails.
 		add_action( 'woocommerce_email_before_order_table', array( $this, 'email_instructions' ), 10, 3 );
 	}
@@ -295,6 +295,10 @@ class WC_Gateway_Advance_BACS extends WC_Payment_Gateway {
 			<div class="adv_receipt_field">
 				<input type="file" name="adv_receipt_attachment" class="adv_receipt_attachment"/>
 			</div>
+			<div id="progress-wrp" class="is_hidden">
+				<div class="progress-bar"></div>
+				<div class="status">0%</div>
+			</div>
 			<div class="adv_receipt_field is_hidden">
 				<a href="javascript:void(0);" class="adv_receipt_remove_attachment"><?php esc_html_e( 'Remove File', 'advance-bank-transfer' ); ?></a>
 			</div>
@@ -302,7 +306,7 @@ class WC_Gateway_Advance_BACS extends WC_Payment_Gateway {
 		<?php
 		return ob_get_clean();
 	}
-	
+
 	/**
 	 * Output for the order received page.
 	 *

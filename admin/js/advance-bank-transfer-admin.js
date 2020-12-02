@@ -3,5 +3,7 @@
  * should reside in this file.
  */
 jQuery(document).ready( function($){
+
+	// Initiate mutliselect
 	jQuery('.multiselect ').select2();	
 });

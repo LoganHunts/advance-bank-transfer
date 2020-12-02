@@ -97,7 +97,67 @@ class Advance_Bank_Transfer_Public {
 		 */
 
 		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/advance-bank-transfer-public.js', array( 'jquery' ), $this->version, false );
+		wp_localize_script(
+			$this->plugin_name,
+			'adv_bank_transfer',
+			array(
+				'ajaxurl'       => plugin_dir_url( __FILE__ ) . 'uploads-helper.php',
+				'base_dir'    => defined( 'ABSPATH' ) ? ABSPATH : '',
+			)
+		);
+	}
+	
+
+	/**
+	 * Register the AJAX Callback for file upload.
+	 *
+	 * @since    1.0.0
+	 */
+	public function perform_upload(){
+		echo '<pre>'; print_r( $_POST ); echo '</pre>'; 
+		echo '<pre>'; print_r( $_FILE ); echo '</pre>'; 
+		die();
+		if (!empty($_FILES['fqfiles']['name'])) {
+			// echo '<pre>';
+			// print_r($_FILES);
+			// echo '</pre>';
+			// echo '<pre>'; print_r( $_POST['fqfile'] ); echo '</pre>';
+			$errors = array();
+			$file_name = $_FILES['fqfiles']['name'];
+			// $file_size   = $_FILES['fqfile']['size'];
+			$file_tmp = $_FILES['fqfiles']['tmp_name'];
+			$file_type = $_FILES['fqfiles']['type'];
+			$file_ext = strtolower(end(explode('.', $_FILES['fqfiles']['name'])));
+
+			$extensions = array("pdf", "docx", "txt", "png");
+			//echo '<pre>'; print_r( $FILE ); echo '</pre>';
+			// die();
+			if (!empty($file_ext)) {
+				if (in_array($file_ext, $extensions) === false) {
+					$errors[] = "extension not allowed, please choose a pdf or docx file.";
+				}
+			}
+			$log_dir = ABSPATH . "wp-content/uploads/quote-submission";
+			if (!is_dir($log_dir)) {
+
+				mkdir($log_dir, 0755, true);
+			}
+
+			$mwb_gaq_form_data['fqfilename'] = '';
+
+			if (empty($errors) == true) {
+				$mwb_gaq_form_data['fqfilename'] = "quote_" . $post_id . "." . $file_ext;
+				move_uploaded_file($file_tmp, $log_dir . "/" . $mwb_gaq_form_data['fqfilename']);
+				echo "Success";
+
+			} else {
+				echo "\t";
+				print_r($errors);
+				echo "\t";
+			}
+		}
 
 	}
 
+// End of class.
 }
