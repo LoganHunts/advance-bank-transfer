@@ -74,6 +74,8 @@ class WC_Gateway_Advance_BACS extends WC_Payment_Gateway {
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'save_account_details' ) );
 		add_action( 'woocommerce_thankyou_bacs', array( $this, 'thankyou_page' ) );
 
+		// Show Reciept.
+		add_action( 'woocommerce_admin_order_data_after_order_details', array( $this, 'admin_order_display_order_receipt' ), 60, 1 );
 		add_filter( 'woocommerce_gateway_description', array( $this, 'add_receipt_fields_html' ), 10, 2 );
 		
 		// Customer Emails.
@@ -118,7 +120,7 @@ class WC_Gateway_Advance_BACS extends WC_Payment_Gateway {
 			'account_details' => array(
 				'type' => 'account_details',
 			),
-			'xxclude_countries'    => array(
+			'exclude_countries'    => array(
 				'title'       => __( 'Exclude Countries', 'advance-bank-transfer' ),
 				'type'        => 'multiselect',
 				'options'        => $countries,
@@ -126,14 +128,26 @@ class WC_Gateway_Advance_BACS extends WC_Payment_Gateway {
 				'default'     => '',
 				'desc_tip'    => true,
 			),
+			'support_formats'    => array(
+				'title'       => __( 'Support Formats', 'advance-bank-transfer' ),
+				'type'        => 'multiselect',
+				'options'        => array(
+					'jpeg'	=>	'jpeg',
+					'jpg'	=>	'jpg',
+					'pdf'	=>	'pdf',
+					'png'	=>	'png',
+				),
+				'description' => __( 'The payment method won\'t be shown if billing country is one of these.', 'advance-bank-transfer' ),
+				'default'     => array( 'jpeg','jpg','pdf','png' ),
+				'desc_tip'    => true,
+			),
 		);
-		
 	}
 
 	/**
 	 * Generate account details html.
 	 *
-	 * @return string
+	 * @return hmtl
 	 */
 	public function generate_account_details_html() {
 
@@ -254,11 +268,25 @@ class WC_Gateway_Advance_BACS extends WC_Payment_Gateway {
 		update_option( 'woocommerce_bacs_accounts', $accounts );
 	}
 
+	/**
+	 * Unset the gateway after validation.
+	 *
+	 */
+	public function is_available() {
+
+		$current_customer = WC()->session->get( 'customer' );
+		$billing_country = ! empty( $current_customer['country'] ) ? $current_customer['country'] : array();
+		if( in_array( $billing_country, $this->settings[ 'exclude_countries' ] ) ) {
+			return false;
+		}
+		else {
+			return true;
+		}
+	}
 
 	/**
 	 * Output for the order received page.
 	 *
-	 * @param int $order_id Order ID.
 	 */
 	public function payment_fields() {
 
@@ -294,10 +322,11 @@ class WC_Gateway_Advance_BACS extends WC_Payment_Gateway {
 		<div class="adv_receipt_wrapper">
 			<div class="adv_receipt_field">
 				<input type="file" name="adv_receipt_attachment" class="adv_receipt_attachment"/>
+				<input type="hidden" name="adv_receipt_attached" class="adv_receipt_attached"/>
 			</div>
 			<div id="progress-wrp" class="is_hidden">
 				<div class="progress-bar"></div>
-				<div class="status">0%</div>
+				<div class="status"><?php esc_html_e( 'Processing', 'advance-bank-transfer' ); ?></div>
 			</div>
 			<div class="adv_receipt_field is_hidden">
 				<a href="javascript:void(0);" class="adv_receipt_remove_attachment"><?php esc_html_e( 'Remove File', 'advance-bank-transfer' ); ?></a>
@@ -412,6 +441,15 @@ class WC_Gateway_Advance_BACS extends WC_Payment_Gateway {
 
 	}
 
+   /**
+	 * Validate the submitted data via woo checkout form.
+	 */
+	public function validate_fields() {
+		if( empty( $_POST[ 'adv_receipt_attached' ] ) ) {
+			throw new Exception( "Please attach Order Reciept First.", 1 );
+		}
+	}
+
 	/**
 	 * Process the payment and return the result.
 	 *
@@ -421,6 +459,11 @@ class WC_Gateway_Advance_BACS extends WC_Payment_Gateway {
 	public function process_payment( $order_id ) {
 
 		$order = wc_get_order( $order_id );
+
+		$receipt = ! empty( $_POST[ 'adv_receipt_attached' ] ) ? $_POST[ 'adv_receipt_attached' ] : $_POST[ 'adv_receipt_attached' ];
+		
+		// Update Order Receipt.
+		update_post_meta( $order_id, '_adv_receipt_attached', $_POST[ 'adv_receipt_attached' ] );
 
 		if ( $order->get_total() > 0 ) {
 			// Mark as on-hold (we're awaiting the payment).
@@ -438,6 +481,21 @@ class WC_Gateway_Advance_BACS extends WC_Payment_Gateway {
 			'redirect' => $this->get_return_url( $order ),
 		);
 
+	}
+
+	/**
+	 * Display Order Receipt in admin edit order panel.
+	 *
+	 * @param object $order Order.
+	 */
+	function admin_order_display_order_receipt( $order ){
+
+		$order_receipt = get_post_meta( $order->get_id(), '_adv_receipt_attached', true );
+		$order_receipt = ! empty( $order_receipt ) ? $order_receipt : '';
+		?>
+		<br>
+		<p><strong>Order Receipt :</strong></p><a href="<?php echo esc_html( $order_receipt ); ?>" target="_blank"><?php echo esc_html( $order_receipt ); ?></a>
+		<?php
 	}
 
 	/**

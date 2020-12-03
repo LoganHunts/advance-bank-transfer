@@ -181,6 +181,9 @@ class Advance_Bank_Transfer {
 		// Wp Ajax callbacks.
 		$this->loader->add_action( 'wp_ajax_perform_upload', $plugin_public, 'perform_upload' );
 		$this->loader->add_action( 'wp_ajax_nopriv_perform_upload', $plugin_public, 'perform_upload' );
+
+		$this->loader->add_action( 'wp_ajax_remove_current_upload', $plugin_public, 'remove_current_upload' );
+		$this->loader->add_action( 'wp_ajax_nopriv_remove_current_upload', $plugin_public, 'remove_current_upload' );
 	}
 
 	/**

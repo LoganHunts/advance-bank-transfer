@@ -101,8 +101,8 @@ class Advance_Bank_Transfer_Public {
 			$this->plugin_name,
 			'adv_bank_transfer',
 			array(
-				'ajaxurl'       => plugin_dir_url( __FILE__ ) . 'uploads-helper.php',
-				'base_dir'    => defined( 'ABSPATH' ) ? ABSPATH : '',
+				'ajaxurl'       => admin_url( 'admin-ajax.php' ),
+				'auth_nonce'    => wp_create_nonce( 'auth_adv_nonce' ),
 			)
 		);
 	}
@@ -114,49 +114,95 @@ class Advance_Bank_Transfer_Public {
 	 * @since    1.0.0
 	 */
 	public function perform_upload(){
-		echo '<pre>'; print_r( $_POST ); echo '</pre>'; 
-		echo '<pre>'; print_r( $_FILE ); echo '</pre>'; 
-		die();
-		if (!empty($_FILES['fqfiles']['name'])) {
-			// echo '<pre>';
-			// print_r($_FILES);
-			// echo '</pre>';
-			// echo '<pre>'; print_r( $_POST['fqfile'] ); echo '</pre>';
-			$errors = array();
-			$file_name = $_FILES['fqfiles']['name'];
-			// $file_size   = $_FILES['fqfile']['size'];
-			$file_tmp = $_FILES['fqfiles']['tmp_name'];
-			$file_type = $_FILES['fqfiles']['type'];
-			$file_ext = strtolower(end(explode('.', $_FILES['fqfiles']['name'])));
 
-			$extensions = array("pdf", "docx", "txt", "png");
-			//echo '<pre>'; print_r( $FILE ); echo '</pre>';
-			// die();
-			if (!empty($file_ext)) {
-				if (in_array($file_ext, $extensions) === false) {
-					$errors[] = "extension not allowed, please choose a pdf or docx file.";
+		// Nonce verification.
+		check_ajax_referer( 'auth_adv_nonce', 'auth_nonce' );
+
+		if ( ! empty( $_FILES['receipt']['name'] ) ) {
+
+			$errors = array();
+			$file_name = $_FILES['receipt']['name'];
+			$file_tmp = $_FILES['receipt']['tmp_name'];
+			$file_type = $_FILES['receipt']['type'];
+		
+			$file_data = explode( '.', $file_name );
+			$file_ext = end( $file_data );
+			$file_ext = strtolower( $file_ext );
+
+			$gateway_options = new WC_Gateway_Advance_BACS();
+			$settings = ! empty( $gateway_options->settings ) ? $gateway_options->settings : array();
+			$extensions = ! empty( $settings['support_formats'] ) ? $settings['support_formats'] : array();
+		
+			if ( ! empty( $file_ext ) ) {
+				if( ! in_array( $file_ext, $extensions ) ) {
+					$errors[] = "Extension not supported.";
 				}
 			}
-			$log_dir = ABSPATH . "wp-content/uploads/quote-submission";
-			if (!is_dir($log_dir)) {
+				
+			if( empty( $errors ) ) {
 
-				mkdir($log_dir, 0755, true);
-			}
+				$receipt_dir = '/wc-receipt-submissions/';
+				$upload_dir_data = wp_upload_dir();
+				$base_dir = ! empty( $upload_dir_data[ 'basedir' ] ) ? $upload_dir_data[ 'basedir' ] : '';
+				$base_url = ! empty( $upload_dir_data[ 'baseurl' ] ) ? $upload_dir_data[ 'baseurl' ] : '';
+			
+				if ( ! is_dir( $base_dir . $receipt_dir ) ) {
+					mkdir( $base_dir . $receipt_dir, 0755, true );
+				}
 
-			$mwb_gaq_form_data['fqfilename'] = '';
-
-			if (empty($errors) == true) {
-				$mwb_gaq_form_data['fqfilename'] = "quote_" . $post_id . "." . $file_ext;
-				move_uploaded_file($file_tmp, $log_dir . "/" . $mwb_gaq_form_data['fqfilename']);
-				echo "Success";
-
+				move_uploaded_file( $file_tmp, $base_dir . $receipt_dir . $file_name );
+				echo json_encode(
+					array(
+						'result'    => 'success',
+						'path'    => $base_dir . $receipt_dir . $file_name,
+						'url'    => $base_url . $receipt_dir . $file_name,
+					)
+				);
 			} else {
-				echo "\t";
-				print_r($errors);
-				echo "\t";
+				echo json_encode(
+					array(
+						'result'    => 'failure',
+						'errors'    =>  $errors
+					)
+				);
 			}
+			
+			wp_die();
 		}
+	}
 
+	/**
+	 * Register the AJAX Callback for file delete.
+	 *
+	 * @since    1.0.0
+	 */
+	public function remove_current_upload(){
+
+		// Nonce verification.
+		check_ajax_referer( 'auth_adv_nonce', 'auth_nonce' );
+
+		$file_path = ! empty( $_POST[ 'path' ] ) ? $_POST[ 'path' ] : '';
+		if ( ! empty( $file_path ) ) {
+
+			// Check file exist or not 
+			if( file_exists( $file_path ) ){ 
+				// Remove file 
+				unlink( $file_path ); 
+		  
+				echo json_encode(
+					array(
+						'result'    => 'success',
+					)
+				);
+			} else {
+				echo json_encode(
+					array(
+						'result'    => 'failure',
+					)
+				);
+			}
+			wp_die();
+		}
 	}
 
 // End of class.
